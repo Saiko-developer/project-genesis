@@ -10,24 +10,29 @@ export function useAuth() {
 
   useEffect(() => {
     let active = true;
+    let unsubscribe: (() => void) | null = null;
 
-    let sub: { subscription: { unsubscribe: () => void } } | null = null;
     try {
-      sub = supabase.auth.onAuthStateChange((_event, next) => {
-      if (!active) return;
-      setSession(next);
-      setLoading(false);
-    });
+      const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+        if (!active) return;
+        setSession(next);
+        setLoading(false);
+      });
+      unsubscribe = () => sub.subscription.unsubscribe();
 
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setLoading(false);
-    });
+      void supabase.auth.getSession().then(({ data }) => {
+        if (!active) return;
+        setSession(data.session);
+        setLoading(false);
+      });
+    } catch {
+      // Supabase env not configured (e.g. sandbox) — run signed-out instead of crashing.
+      if (active) setLoading(false);
+    }
 
     return () => {
       active = false;
-      sub.subscription.unsubscribe();
+      unsubscribe?.();
     };
   }, []);
 
