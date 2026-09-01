@@ -11,7 +11,9 @@ export function useAuth() {
   useEffect(() => {
     let active = true;
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
+    let sub: { subscription: { unsubscribe: () => void } } | null = null;
+    try {
+      sub = supabase.auth.onAuthStateChange((_event, next) => {
       if (!active) return;
       setSession(next);
       setLoading(false);
